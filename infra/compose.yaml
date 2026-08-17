@@ -1,0 +1,60 @@
+name: hands-on
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB is required}
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER is required}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - internal
+
+  n8n:
+    image: n8nio/n8n:1.107.4
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${N8N_PORT:-5678}:5678"
+    environment:
+      DB_TYPE: postgresdb
+      DB_POSTGRESDB_HOST: postgres
+      DB_POSTGRESDB_PORT: 5432
+      DB_POSTGRESDB_DATABASE: ${POSTGRES_DB:?POSTGRES_DB is required}
+      DB_POSTGRESDB_USER: ${POSTGRES_USER:?POSTGRES_USER is required}
+      DB_POSTGRESDB_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      N8N_HOST: ${N8N_HOST:-localhost}
+      N8N_PROTOCOL: ${N8N_PROTOCOL:-http}
+      N8N_PORT: 5678
+      N8N_EDITOR_BASE_URL: ${WEBHOOK_URL:?WEBHOOK_URL is required}
+      WEBHOOK_URL: ${WEBHOOK_URL:?WEBHOOK_URL is required}
+      N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY:?N8N_ENCRYPTION_KEY is required}
+      N8N_PROXY_HOPS: ${N8N_PROXY_HOPS:-0}
+      N8N_LOG_LEVEL: ${N8N_LOG_LEVEL:-info}
+      EXECUTIONS_DATA_PRUNE: ${EXECUTIONS_DATA_PRUNE:-true}
+      EXECUTIONS_DATA_MAX_AGE: ${EXECUTIONS_DATA_MAX_AGE:-336}
+      GENERIC_TIMEZONE: ${GENERIC_TIMEZONE:-America/Fortaleza}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - ../n8n/workflows:/files/workflows:ro
+    networks:
+      - internal
+
+networks:
+  internal:
+    driver: bridge
+    internal: true
+
+volumes:
+  postgres_data:
+  n8n_data:

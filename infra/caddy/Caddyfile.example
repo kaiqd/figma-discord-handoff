@@ -1,0 +1,6 @@
+# Copie para Caddyfile na VPS e substitua o domínio.
+# O n8n permanece preso a 127.0.0.1 no Compose.
+
+automation.example.com {
+    reverse_proxy 127.0.0.1:5678
+}
