@@ -1,0 +1,227 @@
+{
+  "name": "Figma — Ready for dev",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "figma-ready-for-dev",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "1d8e6d9b-0d07-4ff1-87c9-0b1d4dfb7a01",
+      "name": "Webhook — Figma events",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 0],
+      "webhookId": "hands-on-figma-ready-for-dev"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = ($json.body && typeof $json.body === 'object') ? $json.body : $json;\nconst passcode = typeof body.passcode === 'string' ? body.passcode : '';\nconst { passcode: _redacted, ...safePayload } = body;\nconst expected = typeof $env.FIGMA_WEBHOOK_PASSCODE === 'string' ? $env.FIGMA_WEBHOOK_PASSCODE : '';\nreturn [{ json: { payload: safePayload, valid: Boolean(expected) && passcode === expected } }];"
+      },
+      "id": "3cfdd6b9-7d8a-45d2-9577-69f85a5f6f02",
+      "name": "Validate passcode",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [220, 0]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.valid }}",
+              "operation": "isTrue"
+            }
+          ]
+        }
+      },
+      "id": "d3f4d7fb-6acd-4701-bfc4-30cb31d94003",
+      "name": "Passcode valid?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [440, 0]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ accepted: false }) }}",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "9d4409dd-4a0f-42b6-a4ac-10ae5bd0f004",
+      "name": "Reject invalid passcode",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [680, 160]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ accepted: true }) }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "c2e1ac72-a7c3-448c-990d-1b7e7b1c0b05",
+      "name": "Acknowledge Figma",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [680, -80]
+    },
+    {
+      "parameters": {
+        "jsCode": "const { payload } = $json;\nif (payload.event_type === 'PING') return [];\nif (payload.event_type !== 'DEV_MODE_STATUS_UPDATE') return [];\nreturn [{ json: $json }];"
+      },
+      "id": "4b60fd1c-7452-4264-bb56-9f060ef70606",
+      "name": "Route event",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [920, -80]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.payload.status }}",
+              "operation": "equals",
+              "value2": "READY_FOR_DEV"
+            }
+          ]
+        }
+      },
+      "id": "be2e56a2-7a76-42bc-bb7f-55792d3ea007",
+      "name": "Filter READY_FOR_DEV",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1140, -80]
+    },
+    {
+      "parameters": {
+        "jsCode": "const event = $json.payload;\nconst idempotencyKey = JSON.stringify([event.webhook_id ?? '', event.event_type ?? '', event.file_key ?? '', event.node_id ?? '', event.status ?? '', event.timestamp ?? '']);\nconst store = getWorkflowStaticData('global');\nconst processed = store.processed ?? {};\nreturn [{ json: { ...$json, idempotencyKey, duplicate: Boolean(processed[idempotencyKey]) } }];"
+      },
+      "id": "a0ad9f7e-dfeb-4862-84c4-8bfc09f50808",
+      "name": "Deduplicate",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1360, -80]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.duplicate }}",
+              "operation": "isFalse"
+            }
+          ]
+        }
+      },
+      "id": "5a4a1661-2a02-44b9-8df1-27d64c130009",
+      "name": "New event?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1580, -80]
+    },
+    {
+      "parameters": {
+        "jsCode": "const event = $json.payload;\nconst clean = (value, fallback, max = 1024) => {\n  const text = String(value ?? fallback).trim();\n  return text.slice(0, max) || fallback;\n};\nconst fileKey = clean(event.file_key, 'unknown-file', 200);\nconst nodeId = clean(event.node_id, '', 100);\nconst nodeQuery = nodeId ? `?node-id=${encodeURIComponent(nodeId.replace(':', '-'))}` : '';\nconst figmaUrl = `https://www.figma.com/design/${encodeURIComponent(fileKey)}/${nodeQuery}`;\nconst fileName = clean(event.file_name, 'Figma file', 256);\nconst handoffBy = clean(event.triggered_by?.handle ?? event.triggered_by?.name, 'Unknown designer', 256);\nconst description = clean(event.change_message ?? event.description, 'No description provided.', 1024);\nreturn [{ json: {\n  idempotencyKey: $json.idempotencyKey,\n  discordPayload: {\n    embeds: [{\n      title: 'Ready for development',\n      url: figmaUrl,\n      description,\n      color: 5763719,\n      fields: [\n        { name: 'File', value: fileName, inline: true },\n        { name: 'Handed off by', value: handoffBy, inline: true },\n        { name: 'Open in Figma', value: `[View design](${figmaUrl})`, inline: false }\n      ],\n      footer: { text: 'Hands On · From handoff to hands-on' }\n    }],\n    allowed_mentions: { parse: [] }\n  }\n} }];"
+      },
+      "id": "9a6f032d-b15a-43e2-83f4-51ca3c12000a",
+      "name": "Build Discord message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1800, -80]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://discord.com/api/v10/channels/' + $env.DISCORD_CHANNEL_ID + '/messages' }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.discordPayload) }}",
+        "options": {}
+      },
+      "id": "f2d5d7e3-7c40-42e8-9f25-3c3a8d9a000b",
+      "name": "Send message to Discord",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2020, -80],
+      "credentials": {
+        "httpHeaderAuth": {
+          "name": "Hands On — Discord Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const store = getWorkflowStaticData('global');\nstore.processed = store.processed ?? {};\nconst idempotencyKey = $node['Build Discord message'].json.idempotencyKey;\nstore.processed[idempotencyKey] = { processedAt: new Date().toISOString(), discordMessageId: $json.id ?? null };\nreturn [{ json: { recorded: true, idempotencyKey, discordMessageId: $json.id ?? null } }];"
+      },
+      "id": "9b4f82c4-5e9a-4ccd-a51a-7bd8d3b1000c",
+      "name": "Record result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2240, -80]
+    }
+  ],
+  "connections": {
+    "Webhook — Figma events": {
+      "main": [[{"node": "Validate passcode", "type": "main", "index": 0}]]
+    },
+    "Validate passcode": {
+      "main": [[{"node": "Passcode valid?", "type": "main", "index": 0}]]
+    },
+    "Passcode valid?": {
+      "main": [
+        [{"node": "Acknowledge Figma", "type": "main", "index": 0}],
+        [{"node": "Reject invalid passcode", "type": "main", "index": 0}]
+      ]
+    },
+    "Acknowledge Figma": {
+      "main": [[{"node": "Route event", "type": "main", "index": 0}]]
+    },
+    "Route event": {
+      "main": [[{"node": "Filter READY_FOR_DEV", "type": "main", "index": 0}]]
+    },
+    "Filter READY_FOR_DEV": {
+      "main": [[{"node": "Deduplicate", "type": "main", "index": 0}], []]
+    },
+    "Deduplicate": {
+      "main": [[{"node": "New event?", "type": "main", "index": 0}]]
+    },
+    "New event?": {
+      "main": [[{"node": "Build Discord message", "type": "main", "index": 0}], []]
+    },
+    "Build Discord message": {
+      "main": [[{"node": "Send message to Discord", "type": "main", "index": 0}]]
+    },
+    "Send message to Discord": {
+      "main": [[{"node": "Record result", "type": "main", "index": 0}]]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataSuccessExecution": "all",
+    "saveDataErrorExecution": "all",
+    "saveManualExecutions": true
+  },
+  "versionId": "0a2d4b6f-65a4-4e4c-88c5-1c2b51a6000d",
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": []
+}
