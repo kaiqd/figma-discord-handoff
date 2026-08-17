@@ -43,9 +43,11 @@ A sequência final é:
 2. Criar `.env` na VPS e gerar uma `N8N_ENCRYPTION_KEY` estável.
 3. Revisar `infra/compose.yaml` e iniciar com `make up`.
 4. Criar no n8n a credencial **Header Auth** `Authorization: Bot <DISCORD_BOT_TOKEN>`.
-5. Importar `n8n/workflows/figma-ready-for-dev.json`.
-6. Configurar a URL pública HTTPS, testar o Discord e executar `make test-webhook`.
-7. Só então executar `make register-webhook` para cadastrar o endpoint no Figma.
+5. Criar outra credencial **Header Auth** `X-Figma-Token: <FIGMA_TOKEN>` para a consulta
+   opcional do nome do arquivo.
+6. Importar `n8n/workflows/figma-ready-for-dev.json`.
+7. Configurar a URL pública HTTPS, testar o Discord e executar `make test-webhook`.
+8. Só então executar `make register-webhook` para cadastrar o endpoint no Figma.
 
 Nunca versionar `.env`, tokens, credenciais exportadas ou o estado do n8n. Se um segredo
 for exposto, revogue-o e gere outro.
