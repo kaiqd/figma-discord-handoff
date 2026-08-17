@@ -5,15 +5,16 @@ localmente, mas os segredos, o domínio e a URL pública pertencem à VPS.
 
 ## Ordem de configuração
 
-1. Instale Docker Engine, Docker Compose e Caddy (ou outro proxy HTTPS) na VPS.
+1. Confirme que a rede overlay `rosarede` existe e é a rede do Traefik.
 2. Clone o repositório e crie `.env` a partir de `.env.example`.
 3. Gere uma chave longa e estável para `N8N_ENCRYPTION_KEY`; não a troque depois de criar
    credenciais no n8n.
 4. Preencha os tokens do Discord e do Figma e o `DISCORD_CHANNEL_ID`.
-5. Defina `N8N_HOST`, `N8N_PROTOCOL=https`, `WEBHOOK_URL=https://<domínio>/` e
-   `N8N_PROXY_HOPS=1`.
-6. Configure o proxy para encaminhar o domínio para `127.0.0.1:5678` e confirme TLS.
-7. Suba os serviços com `make up` e abra o editor apenas pelo domínio protegido.
+5. Defina `HANDS_ON_DOMAIN`, por exemplo `hands-on.seudominio.com`, e crie o registro DNS
+   apontando para a VPS. O `infra/stack.yaml` já configura a rota do Traefik na rede
+   externa `rosarede`.
+6. Suba a stack com `make deploy-swarm`; não use `make up` nesta VPS, pois ela usa Swarm.
+7. Confirme `docker stack services hands-on` e abra o editor pelo domínio HTTPS.
 8. Crie as credenciais Header Auth:
    - `Hands On — Discord Bot`: `Authorization` = `Bot <DISCORD_BOT_TOKEN>`.
    - `Hands On — Figma API Token`: `X-Figma-Token` = `<FIGMA_TOKEN>`.
@@ -31,7 +32,7 @@ localmente, mas os segredos, o domínio e a URL pública pertencem à VPS.
 - `make list-webhooks` confirma o webhook ativo sem revelar o passcode.
 - `make remove-webhook ID=<id>` remove um cadastro incorreto; a remoção é irreversível.
 - Faça backup do volume/banco do n8n e de `N8N_ENCRYPTION_KEY`.
-- O Postgres não tem `ports` no Compose e só é acessível pelo n8n.
+- O Postgres não tem `ports` no Compose/Swarm e só é acessível pelo n8n.
 
 ## Rollback
 

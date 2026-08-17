@@ -18,6 +18,7 @@ def main() -> int:
         ".env.example",
         ".gitignore",
         "infra/compose.yaml",
+        "infra/stack.yaml",
         "n8n/workflows/figma-ready-for-dev.json",
         "scripts/register_figma_webhook.py",
         "scripts/list_figma_webhooks.py",
