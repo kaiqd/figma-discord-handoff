@@ -30,8 +30,8 @@ services:
       N8N_HOST: ${HANDS_ON_DOMAIN:?HANDS_ON_DOMAIN is required}
       N8N_PROTOCOL: https
       N8N_PORT: 5678
-      N8N_EDITOR_BASE_URL: https://${HANDS_ON_DOMAIN}/
-      WEBHOOK_URL: https://${HANDS_ON_DOMAIN}/
+      N8N_EDITOR_BASE_URL: https://${HANDS_ON_DOMAIN}:${HANDS_ON_HTTPS_PORT:-8443}/
+      WEBHOOK_URL: https://${HANDS_ON_DOMAIN}:${HANDS_ON_HTTPS_PORT:-8443}/
       N8N_PROXY_HOPS: 1
       N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY:?N8N_ENCRYPTION_KEY is required}
       N8N_SECURE_COOKIE: "true"
@@ -45,27 +45,59 @@ services:
       - n8n_data:/home/node/.n8n
     networks:
       - hands_on_internal
-      - rosarede
     deploy:
       replicas: 1
       restart_policy:
         condition: on-failure
-      labels:
-        - traefik.enable=true
-        - traefik.docker.network=rosarede
-        - traefik.http.routers.hands-on.rule=Host(`${HANDS_ON_DOMAIN}`)
-        - traefik.http.routers.hands-on.entrypoints=websecure
-        - traefik.http.routers.hands-on.tls=true
-        - traefik.http.routers.hands-on.tls.certresolver=letsencryptresolver
-        - traefik.http.services.hands-on.loadbalancer.server.port=5678
+
+  caddy:
+    image: caddy:2.10.0-alpine
+    environment:
+      HANDS_ON_DOMAIN: ${HANDS_ON_DOMAIN:?HANDS_ON_DOMAIN is required}
+    ports:
+      - target: 80
+        published: ${HANDS_ON_HTTP_PORT:-8081}
+        protocol: tcp
+        mode: host
+      - target: 443
+        published: ${HANDS_ON_HTTPS_PORT:-8443}
+        protocol: tcp
+        mode: host
+    configs:
+      - source: hands_on_caddyfile
+        target: /etc/caddy/Caddyfile
+    secrets:
+      - source: hands_on_fullchain
+        target: /etc/caddy/certs/fullchain.pem
+      - source: hands_on_privkey
+        target: /etc/caddy/certs/privkey.pem
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - hands_on_internal
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
 
 networks:
   hands_on_internal:
     driver: overlay
     attachable: true
-  rosarede:
-    external: true
+
+configs:
+  hands_on_caddyfile:
+    file: ./infra/caddy/Caddyfile
+
+secrets:
+  hands_on_fullchain:
+    file: ./certs/fullchain.pem
+  hands_on_privkey:
+    file: ./certs/privkey.pem
 
 volumes:
   postgres_data:
   n8n_data:
+  caddy_data:
+  caddy_config:
