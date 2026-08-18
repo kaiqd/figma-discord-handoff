@@ -88,13 +88,13 @@ networks:
 
 configs:
   hands_on_caddyfile:
-    file: ./infra/caddy/Caddyfile
+    file: caddy/Caddyfile
 
 secrets:
   hands_on_fullchain:
-    file: ./certs/fullchain.pem
+    file: ../certs/fullchain.pem
   hands_on_privkey:
-    file: ./certs/privkey.pem
+    file: ../certs/privkey.pem
 
 volumes:
   postgres_data:
