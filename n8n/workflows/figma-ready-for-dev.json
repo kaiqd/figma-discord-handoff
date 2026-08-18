@@ -100,7 +100,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const event = $json.payload;\nconst idempotencyKey = JSON.stringify([event.webhook_id ?? '', event.event_type ?? '', event.file_key ?? '', event.node_id ?? '', event.status ?? '', event.timestamp ?? '']);\nconst store = getWorkflowStaticData('global');\nconst processed = store.processed ?? {};\nreturn [{ json: { ...$json, idempotencyKey, duplicate: Boolean(processed[idempotencyKey]) } }];"
+        "jsCode": "const event = $json.payload;\nconst idempotencyKey = JSON.stringify([event.webhook_id ?? '', event.event_type ?? '', event.file_key ?? '', event.node_id ?? '', event.status ?? '', event.timestamp ?? '']);\nconst store = $getWorkflowStaticData('global');\nconst processed = store.processed ?? {};\nreturn [{ json: { ...$json, idempotencyKey, duplicate: Boolean(processed[idempotencyKey]) } }];"
       },
       "id": "a0ad9f7e-dfeb-4862-84c4-8bfc09f50808",
       "name": "Deduplicate",
@@ -190,7 +190,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const store = getWorkflowStaticData('global');\nstore.processed = store.processed ?? {};\nconst idempotencyKey = $node['Build Discord message'].json.idempotencyKey;\nstore.processed[idempotencyKey] = { processedAt: new Date().toISOString(), discordMessageId: $json.id ?? null };\nreturn [{ json: { recorded: true, idempotencyKey, discordMessageId: $json.id ?? null } }];"
+        "jsCode": "const store = $getWorkflowStaticData('global');\nstore.processed = store.processed ?? {};\nconst idempotencyKey = $node['Build Discord message'].json.idempotencyKey;\nstore.processed[idempotencyKey] = { processedAt: new Date().toISOString(), discordMessageId: $json.id ?? null };\nreturn [{ json: { recorded: true, idempotencyKey, discordMessageId: $json.id ?? null } }];"
       },
       "id": "9b4f82c4-5e9a-4ccd-a51a-7bd8d3b1000c",
       "name": "Record result",
