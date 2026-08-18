@@ -29,7 +29,10 @@ localmente, mas os segredos, o domínio e a URL pública pertencem à VPS.
 
 - `make logs` acompanha o n8n; o histórico de execuções deve ficar habilitado para
   diagnóstico e com retenção limitada.
-- `make list-webhooks` confirma o webhook ativo sem revelar o passcode.
+- `make list-webhooks` confirma o webhook ativo sem revelar o passcode. Para investigar o
+  limite do plano inteiro, preencha temporariamente `FIGMA_PLAN_API_ID` com `team-<id>` ou
+  `organization-<id>` e execute o mesmo comando; remova somente webhooks confirmadamente
+  antigos com `make remove-webhook ID=<id>`.
 - `make remove-webhook ID=<id>` remove um cadastro incorreto; a remoção é irreversível.
 - Faça backup do volume/banco do n8n e de `N8N_ENCRYPTION_KEY`.
 - O Postgres não tem `ports` no Compose/Swarm e só é acessível pelo n8n.

@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import sys
+import os
 
 from figma_api import fail, load_dotenv, request, required_env
 
@@ -11,15 +12,27 @@ from figma_api import fail, load_dotenv, request, required_env
 def main() -> int:
     load_dotenv()
     try:
-        context = required_env("FIGMA_CONTEXT_TYPE").lower()
-        if context not in {"file", "project", "team"}:
-            raise ValueError("FIGMA_CONTEXT_TYPE deve ser file, project ou team")
-        result = request(
-            "GET",
-            "/webhooks",
-            params={"context": context, "context_id": required_env("FIGMA_CONTEXT_ID")},
-        )
-        webhooks = result.get("webhooks", [])
+        plan_api_id = os.getenv("FIGMA_PLAN_API_ID", "").strip()
+        if plan_api_id:
+            params = {"plan_api_id": plan_api_id}
+            webhooks = []
+            while True:
+                result = request("GET", "/webhooks", params=params)
+                webhooks.extend(result.get("webhooks", []))
+                next_page = result.get("pagination", {}).get("next_page")
+                if not next_page:
+                    break
+                params = {"plan_api_id": plan_api_id, "cursor": next_page}
+        else:
+            context = required_env("FIGMA_CONTEXT_TYPE").lower()
+            if context not in {"file", "project", "team"}:
+                raise ValueError("FIGMA_CONTEXT_TYPE deve ser file, project ou team")
+            result = request(
+                "GET",
+                "/webhooks",
+                params={"context": context, "context_id": required_env("FIGMA_CONTEXT_ID")},
+            )
+            webhooks = result.get("webhooks", [])
         if not webhooks:
             print("Nenhum webhook encontrado.")
             return 0
