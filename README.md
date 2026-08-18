@@ -14,17 +14,18 @@ representam um handoff e publica somente eventos `DEV_MODE_STATUS_UPDATE` com
 ## Pré-requisitos
 
 - Uma team Figma Professional, Organization ou Enterprise com permissão para criar
-  webhooks no arquivo.
-- Um arquivo Figma contendo as telas do produto. Um único webhook no arquivo atende todas
-  as telas e nodes desse arquivo.
+  webhooks.
+- Um arquivo Figma contendo as telas do produto e acessível aos membros da team. O projeto
+  usa um webhook de team, que pode receber eventos dos arquivos elegíveis dessa team.
 - Uma aplicação/bot do Discord com permissão para enviar mensagens no canal escolhido.
 - Uma VPS com Docker Swarm, um domínio ou subdomínio apontando para a VPS e um certificado
   TLS válido.
 - Python 3 para os scripts de administração do Figma.
 
 No plano Professional, o Figma permite até 3 webhooks por arquivo, 5 por pasta, 20 por
-team e 150 webhooks de arquivos no plano. Para este projeto, use um webhook por arquivo.
-O número de telas ou eventos recebidos não consome novos cadastros de webhook.
+team e 150 webhooks de arquivos no plano. Para este projeto, usamos um único webhook de
+team. O número de páginas, telas ou eventos recebidos não consome novos cadastros de
+webhook.
 
 ## Clonar o projeto
 
@@ -59,8 +60,12 @@ Valor: Bot <DISCORD_BOT_TOKEN>
 1. Abra o arquivo Figma que contém as telas do projeto.
 2. Copie o file key da URL. Em uma URL como
    `https://www.figma.com/design/ABC123/Nome`, o file key é `ABC123`.
-3. Crie um Personal Access Token com permissão para ler arquivos e administrar webhooks.
-4. Gere um passcode exclusivo para validar os eventos recebidos pelo n8n.
+3. Na área de arquivos do Figma, copie o ID da team na URL. Em uma URL como
+   `https://www.figma.com/files/team/123456789/`, o ID da team é `123456789`.
+4. Crie um Personal Access Token com permissão para ler arquivos e administrar webhooks.
+5. Gere um passcode exclusivo para validar os eventos recebidos pelo n8n.
+
+O passcode é uma senha do webhook. Ele não é o ID da conta, da team ou do arquivo.
 
 O workflow usa a credencial Header Auth abaixo para consultar metadados do arquivo:
 
@@ -90,8 +95,8 @@ DISCORD_CHANNEL_ID=<channel-id>
 DISCORD_BOT_TOKEN=<bot-token>
 
 FIGMA_TOKEN=<personal-access-token>
-FIGMA_CONTEXT_TYPE=file
-FIGMA_CONTEXT_ID=<file-key>
+FIGMA_CONTEXT_TYPE=team
+FIGMA_CONTEXT_ID=<team-id>
 FIGMA_WEBHOOK_PASSCODE=<passcode>
 
 N8N_ENCRYPTION_KEY=<chave-estavel-e-longa>
@@ -155,7 +160,7 @@ O resultado esperado é:
 
 ## Registrar o webhook no Figma
 
-Liste os webhooks existentes no arquivo:
+Liste os webhooks existentes na team:
 
 ```bash
 make list-webhooks
@@ -168,6 +173,12 @@ make register-webhook
 ```
 
 O Figma enviará um `PING` inicial. O workflow deve aceitá-lo sem publicar no Discord.
+
+Como o webhook é de team, os arquivos precisam estar acessíveis aos membros da team. Um
+arquivo restrito a convidados pode não enviar eventos para esse tipo de webhook.
+
+Para usar um webhook limitado a um único arquivo, configure `FIGMA_CONTEXT_TYPE=file` e
+`FIGMA_CONTEXT_ID=<file-key>` antes de executar os comandos acima.
 
 Para listar todos os webhooks do plano, defina temporariamente o identificador do plano:
 
