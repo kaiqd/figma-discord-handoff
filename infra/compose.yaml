@@ -9,10 +9,11 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER is required}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-postgres}"]
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 10s
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
@@ -22,7 +23,7 @@ services:
     image: n8nio/n8n:1.107.4
     restart: unless-stopped
     ports:
-      - "127.0.0.1:${N8N_PORT:-5678}:5678"
+      - "${N8N_PORT:-5678}:5678"
     environment:
       DB_TYPE: postgresdb
       DB_POSTGRESDB_HOST: postgres
@@ -41,6 +42,8 @@ services:
       EXECUTIONS_DATA_PRUNE: ${EXECUTIONS_DATA_PRUNE:-true}
       EXECUTIONS_DATA_MAX_AGE: ${EXECUTIONS_DATA_MAX_AGE:-336}
       GENERIC_TIMEZONE: ${GENERIC_TIMEZONE:-America/Fortaleza}
+      FIGMA_WEBHOOK_PASSCODE: ${FIGMA_WEBHOOK_PASSCODE:-}
+      DISCORD_CHANNEL_ID: ${DISCORD_CHANNEL_ID:-}
     depends_on:
       postgres:
         condition: service_healthy

@@ -1,8 +1,0 @@
-https://{$HANDS_ON_DOMAIN} {
-    tls /etc/caddy/certs/fullchain.pem /etc/caddy/certs/privkey.pem
-    reverse_proxy n8n:5678
-}
-
-:80 {
-    redir https://{$HANDS_ON_DOMAIN}:8443{uri} permanent
-}

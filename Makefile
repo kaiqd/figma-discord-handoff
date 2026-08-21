@@ -1,4 +1,4 @@
-.PHONY: help validate up deploy-swarm down logs test-webhook register-webhook list-webhooks remove-webhook export-workflows import-workflows
+.PHONY: help validate up down logs test-webhook register-webhook list-webhooks remove-webhook export-workflows import-workflows
 
 SHELL := /bin/sh
 COMPOSE := docker compose -f infra/compose.yaml
@@ -7,8 +7,7 @@ PYTHON ?= python3
 help:
 	@printf '%s\n' \
 		'make validate          valida os artefatos versionados' \
-		'make up                sobe o n8n na VPS (etapa final)' \
-		'make deploy-swarm      sobe a stack hands-on no Docker Swarm' \
+		'make up                sobe o ambiente com Docker Compose' \
 		'make down              encerra o ambiente n8n' \
 		'make logs              acompanha os logs do n8n' \
 		'make test-webhook      envia o payload controlado duas vezes' \
@@ -21,13 +20,9 @@ help:
 validate:
 	$(PYTHON) scripts/validate_project.py
 
-# O n8n é deliberadamente a última etapa operacional. Execute estes alvos apenas na VPS.
+# Execute estes alvos apenas na VPS ou localmente para testes.
 up:
 	$(COMPOSE) up -d
-
-deploy-swarm:
-	@test -f .env || (printf '%s\n' 'Crie o arquivo .env antes do deploy.' >&2; exit 2)
-	@set -a; . ./.env; set +a; docker stack deploy -c infra/stack.yaml hands-on
 
 down:
 	$(COMPOSE) down

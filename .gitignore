@@ -6,8 +6,6 @@
 .n8n/
 n8n/.data/
 n8n/backups/
-certs/*.pem
-!certs/.gitkeep
 
 # Python
 __pycache__/

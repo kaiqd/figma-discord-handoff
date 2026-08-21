@@ -18,8 +18,7 @@ representam um handoff e publica somente eventos `DEV_MODE_STATUS_UPDATE` com
 - Um arquivo Figma contendo as telas do produto e acessível aos membros da team. O projeto
   usa um webhook de team, que pode receber eventos dos arquivos elegíveis dessa team.
 - Uma aplicação/bot do Discord com permissão para enviar mensagens no canal escolhido.
-- Uma VPS com Docker Swarm, um domínio ou subdomínio apontando para a VPS e um certificado
-  TLS válido.
+- Uma VPS com Docker Compose ou Coolify configurado e um domínio apontando para a aplicação.
 - Python 3 para os scripts de administração do Figma.
 
 No plano Professional, o Figma permite até 3 webhooks por arquivo, 5 por pasta, 20 por
@@ -75,21 +74,13 @@ Header: X-Figma-Token
 Valor: <FIGMA_TOKEN>
 ```
 
-## Configurar a VPS
+## Configuração do Ambiente e Deploy no Coolify
 
-Na VPS, copie o arquivo de ambiente e preencha os valores. Nunca versionar este arquivo.
+### 1. Variáveis de Ambiente
 
-```bash
-cp .env.example .env
-```
-
-Variáveis principais:
+No Coolify (ou na VPS no arquivo `.env` gerado a partir de `.env.example`), configure:
 
 ```dotenv
-HANDS_ON_DOMAIN=hands-on.seudominio.com
-HANDS_ON_HTTP_PORT=8081
-HANDS_ON_HTTPS_PORT=8443
-
 DISCORD_APPLICATION_ID=<application-id>
 DISCORD_CHANNEL_ID=<channel-id>
 DISCORD_BOT_TOKEN=<bot-token>
@@ -99,9 +90,13 @@ FIGMA_CONTEXT_TYPE=team
 FIGMA_CONTEXT_ID=<team-id>
 FIGMA_WEBHOOK_PASSCODE=<passcode>
 
+N8N_HOST=n8n.seudominio.com
+N8N_PROTOCOL=https
+N8N_PORT=5678
 N8N_ENCRYPTION_KEY=<chave-estavel-e-longa>
-WEBHOOK_URL=https://hands-on.seudominio.com:8443/
-FIGMA_WEBHOOK_ENDPOINT=https://hands-on.seudominio.com:8443/webhook/figma-ready-for-dev
+WEBHOOK_URL=https://n8n.seudominio.com/
+FIGMA_WEBHOOK_ENDPOINT=https://n8n.seudominio.com/webhook/figma-ready-for-dev
+N8N_PROXY_HOPS=1
 
 POSTGRES_DB=n8n
 POSTGRES_USER=n8n
@@ -114,24 +109,18 @@ Gere uma chave estável para o n8n, por exemplo:
 openssl rand -hex 32
 ```
 
-Coloque o certificado do domínio nestes arquivos:
+### 2. Deploy no Coolify
+
+1. No Coolify, crie um novo recurso escolhendo **Docker Compose** apontando para o repositório.
+2. Defina o caminho do arquivo compose para `infra/compose.yaml`.
+3. Insira as variáveis de ambiente acima.
+4. O Coolify gerencia automaticamente o proxy reverso e os certificados SSL/TLS via Let's Encrypt para o seu domínio.
+5. Clique em **Deploy**.
+
+Acesse o editor do n8n em:
 
 ```text
-certs/fullchain.pem
-certs/privkey.pem
-```
-
-Suba a stack independente do projeto:
-
-```bash
-make deploy-swarm
-docker stack services hands-on
-```
-
-Acesse o editor em:
-
-```text
-https://hands-on.seudominio.com:8443
+https://n8n.seudominio.com
 ```
 
 ## Importar e ativar o workflow
