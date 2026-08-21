@@ -9,11 +9,11 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-pg_admin}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-pg_admin123}
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -h 127.0.0.1 -U ${POSTGRES_USER:-pg_admin} -d ${POSTGRES_DB:-pg_n8ndb}" ]
-      interval: 10s
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-pg_admin}"]
+      interval: 5s
       timeout: 5s
-      retries: 5
-      start_period: 10s
+      retries: 10
+      start_period: 30s
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
@@ -34,8 +34,8 @@ services:
       N8N_HOST: ${N8N_HOST:-localhost}
       N8N_PROTOCOL: ${N8N_PROTOCOL:-http}
       N8N_PORT: 5678
-      N8N_EDITOR_BASE_URL: ${WEBHOOK_URL:?WEBHOOK_URL is required}
-      WEBHOOK_URL: ${WEBHOOK_URL:?WEBHOOK_URL is required}
+      N8N_EDITOR_BASE_URL: ${WEBHOOK_URL:-http://localhost:5678/}
+      WEBHOOK_URL: ${WEBHOOK_URL:-http://localhost:5678/}
       N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY:?N8N_ENCRYPTION_KEY is required}
       N8N_PROXY_HOPS: ${N8N_PROXY_HOPS:-0}
       N8N_LOG_LEVEL: ${N8N_LOG_LEVEL:-info}
